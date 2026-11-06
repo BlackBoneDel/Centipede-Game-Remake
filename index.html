@@ -1,0 +1,1268 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080a12">
+  <meta name="description" content="Centipede Arcade Remix: juego gratuito en HTML5 con estética retro y cyberpunk.">
+  <title>Centipede — Arcade Remix</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #080a12;
+      --panel: rgba(17, 22, 34, .88);
+      --line: rgba(122, 165, 205, .2);
+      --text: #e8f1fc;
+      --muted: #91a2b7;
+      --cyan: #00e5ff;
+      --violet: #bd55ff;
+      --green: #00ff66;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 26px 18px 34px;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 50% 5%, rgba(30, 49, 83, .38), transparent 50%),
+        radial-gradient(ellipse at 10% 60%, rgba(101, 32, 126, .11), transparent 36%),
+        var(--page);
+    }
+
+    button { font: inherit; }
+
+    .app { width: min(100%, 1000px); margin: 0 auto; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 0 auto 16px;
+      padding: 0 2px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid rgba(0, 229, 255, .42);
+      border-radius: 11px;
+      color: var(--cyan);
+      background: rgba(0, 229, 255, .07);
+      box-shadow: 0 0 24px rgba(0, 229, 255, .13), inset 0 0 15px rgba(0, 229, 255, .06);
+      font-size: 20px;
+    }
+    .brand-title { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: .16em; }
+    .brand-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 10px; letter-spacing: .19em; text-transform: uppercase; }
+
+    .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #bad0e5;
+      background: rgba(14, 19, 30, .72);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .1em;
+      white-space: nowrap;
+    }
+    .mode-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px currentColor; }
+
+    .game-frame {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      border: 1px solid rgba(108, 150, 191, .34);
+      border-radius: 14px;
+      background: #000;
+      box-shadow:
+        0 20px 70px rgba(0, 0, 0, .48),
+        0 0 0 5px rgba(102, 145, 192, .045),
+        0 0 45px rgba(0, 211, 255, .07);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      outline: none;
+      touch-action: none;
+      image-rendering: pixelated;
+    }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px var(--cyan); }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .toolbar-group { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .action-button {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      border: 1px solid rgba(129, 162, 196, .24);
+      border-radius: 9px;
+      color: #d8e5f3;
+      background: linear-gradient(180deg, rgba(27, 36, 53, .9), rgba(17, 23, 36, .92));
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+      transition: border-color .15s ease, transform .15s ease, background .15s ease;
+    }
+    .action-button:hover { border-color: rgba(0, 229, 255, .55); background: rgba(0, 229, 255, .1); }
+    .action-button:active { transform: translateY(1px); }
+    .action-button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .action-button.primary { color: #041116; border-color: transparent; background: linear-gradient(100deg, #00e5ff, #48f3bd); }
+    .action-button.primary:hover { background: linear-gradient(100deg, #62f1ff, #7bffd5); }
+    .button-icon { color: var(--cyan); font-size: 14px; }
+    .action-button.primary .button-icon { color: #041116; }
+
+    .hint {
+      margin: 13px 2px 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.7;
+      text-align: center;
+    }
+    .hint kbd {
+      display: inline-block;
+      min-width: 23px;
+      margin: 0 2px;
+      padding: 1px 5px;
+      border: 1px solid rgba(134, 164, 194, .28);
+      border-radius: 5px;
+      color: #d6e5f5;
+      background: rgba(21, 29, 43, .85);
+      font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-align: center;
+    }
+
+    .touch-controls {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      width: min(100%, 430px);
+      margin: 17px auto 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 46px);
+      grid-template-rows: repeat(2, 46px);
+      gap: 5px;
+    }
+    .touch-key {
+      display: grid;
+      place-items: center;
+      min-width: 44px;
+      min-height: 44px;
+      border: 1px solid rgba(142, 173, 206, .35);
+      border-radius: 12px;
+      color: #e7f5ff;
+      background: linear-gradient(145deg, rgba(38, 52, 73, .9), rgba(18, 25, 39, .95));
+      box-shadow: inset 0 1px rgba(255,255,255,.05), 0 4px 14px rgba(0,0,0,.2);
+      font-size: 19px;
+      font-weight: 800;
+      touch-action: none;
+    }
+    .touch-key:active, .touch-key.is-held { color: var(--cyan); border-color: var(--cyan); background: rgba(0, 229, 255, .16); }
+    .touch-key.up { grid-column: 2; grid-row: 1; }
+    .touch-key.left { grid-column: 1; grid-row: 2; }
+    .touch-key.down { grid-column: 2; grid-row: 2; }
+    .touch-key.right { grid-column: 3; grid-row: 2; }
+    .touch-key.fire {
+      width: 86px;
+      height: 86px;
+      border-color: rgba(0, 229, 255, .58);
+      border-radius: 50%;
+      color: #041116;
+      background: linear-gradient(145deg, #62f1ff, #00c7e9 70%);
+      box-shadow: 0 0 24px rgba(0, 229, 255, .2), inset 0 2px rgba(255,255,255,.4);
+      font-size: 12px;
+      letter-spacing: .1em;
+    }
+    .touch-key.fire:active, .touch-key.fire.is-held { color: #041116; background: #9af7ff; }
+
+    .toast {
+      position: fixed;
+      z-index: 5;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 12px 16px;
+      border: 1px solid rgba(0, 229, 255, .35);
+      border-radius: 10px;
+      color: var(--text);
+      background: rgba(10, 15, 25, .96);
+      box-shadow: 0 12px 42px rgba(0,0,0,.4);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+
+    .footer {
+      margin: 25px auto 0;
+      color: #64758a;
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 15px 10px 25px; }
+      .topbar { margin-bottom: 11px; }
+      .brand-mark { width: 34px; height: 34px; }
+      .brand-title { font-size: 14px; }
+      .brand-subtitle { font-size: 9px; }
+      .mode-pill { min-height: 31px; padding: 0 9px; font-size: 9px; }
+      .game-frame { border-radius: 9px; }
+      .toolbar { justify-content: center; gap: 8px; }
+      .toolbar-group { justify-content: center; }
+      .action-button { min-height: 38px; padding: 0 10px; font-size: 11px; }
+      .hint { font-size: 10px; }
+    }
+
+    @media (hover: none), (max-width: 760px) {
+      .touch-controls { display: flex; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <div>
+          <h1 class="brand-title">CENTIPEDE</h1>
+          <p class="brand-subtitle">Arcade Remix</p>
+        </div>
+      </div>
+      <div class="mode-pill" aria-live="polite"><span class="mode-dot" id="modeDot"></span><span id="modeLabel">RETRO 80s</span></div>
+    </header>
+
+    <section class="game-frame" aria-label="Área de juego">
+      <canvas id="game" width="800" height="600" tabindex="0" role="application" aria-label="Centipede. Usa flechas o WASD para moverte, espacio para disparar, P para pausar y T para cambiar el estilo.">
+        Este juego requiere un navegador compatible con Canvas HTML5.
+      </canvas>
+    </section>
+
+    <nav class="toolbar" aria-label="Controles del juego">
+      <div class="toolbar-group">
+        <button class="action-button primary" id="startButton" type="button"><span class="button-icon">▶</span> Jugar / reiniciar</button>
+        <button class="action-button" id="pauseButton" type="button"><span class="button-icon">Ⅱ</span> Pausar</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="action-button" id="styleButton" type="button"><span class="button-icon">◐</span> Cambiar estilo <kbd>T</kbd></button>
+      </div>
+    </nav>
+
+    <p class="hint">
+      MOVER <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+      &nbsp;·&nbsp; DISPARAR <kbd>ESPACIO</kbd>
+      &nbsp;·&nbsp; PAUSA <kbd>P</kbd> / <kbd>SHIFT</kbd>
+      &nbsp;·&nbsp; ESTILO <kbd>T</kbd>
+    </p>
+
+    <div class="touch-controls" aria-label="Controles táctiles">
+      <div class="dpad">
+        <button class="touch-key up" type="button" data-code="ArrowUp" aria-label="Mover arriba">▲</button>
+        <button class="touch-key left" type="button" data-code="ArrowLeft" aria-label="Mover a la izquierda">◀</button>
+        <button class="touch-key down" type="button" data-code="ArrowDown" aria-label="Mover abajo">▼</button>
+        <button class="touch-key right" type="button" data-code="ArrowRight" aria-label="Mover a la derecha">▶</button>
+      </div>
+      <button class="touch-key fire" type="button" data-code="Space" aria-label="Disparar">FIRE</button>
+    </div>
+
+    <footer class="footer">Sin dependencias externas · HTML5 Canvas · Listo para GitHub Pages</footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const WIDTH = 800;
+      const HEIGHT = 600;
+      const CELL = 20;
+      const HUD_HEIGHT = 40;
+      const GRID_COLUMNS = WIDTH / CELL;
+      const GRID_ROWS = HEIGHT / CELL;
+      const WORLD_OFFSET = HUD_HEIGHT / CELL;
+      const WORLD_MAX_ROW = GRID_ROWS - WORLD_OFFSET - 1; // Logical row 27 draws at screen row 29.
+      const PLAYER_ZONE_TOP = 400;
+      const PLAYER_ZONE_BOTTOM = 600;
+      const PLAYER_WORLD_FIRST_ROW = PLAYER_ZONE_TOP / CELL - WORLD_OFFSET;
+      const FPS_STEP = 1000 / 60;
+      const RETRO = 'RETRO_80S';
+      const MODERN = 'MODERNO';
+      const COLORS = {
+        [RETRO]: {
+          background: '#000000', head: '#00ff00', body: '#00c800',
+          mushroom3: '#ff0000', mushroom2: '#ffff00', mushroom1: '#ffffff',
+          ship: '#ffffff', bullet: '#ffff00', totem: '#ff00ff', text: '#ffffff'
+        },
+        [MODERN]: {
+          background: '#0f1016', head: '#00f2fe', body: '#00aaff',
+          mushroom3: '#ff007f', mushroom2: '#ff6400', mushroom1: '#ffd200',
+          ship: '#a8acbe', bullet: '#00ff42', totem: '#ba55d3', text: '#e1eeff'
+        }
+      };
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d', { alpha: false });
+      const modeLabel = document.getElementById('modeLabel');
+      const modeDot = document.getElementById('modeDot');
+      const toast = document.getElementById('toast');
+      const heldKeys = new Set();
+      let style = RETRO;
+      let state = 'MENU';
+      let selectedMenuOption = 0;
+      let player = createPlayer();
+      let mushrooms = [];
+      let centipedes = [];
+      let totems = [];
+      let spores = Array.from({ length: 15 }, createSpore);
+      let wave = 1;
+      let highScore = readHighScore();
+      let mouseDown = false;
+      let accumulator = 0;
+      let previousTime = 0;
+      let toastTimeout = 0;
+
+      function createPlayer() {
+        return {
+          x: WIDTH / 2, y: 540, width: 32, height: 24, speed: 6,
+          score: 0, lives: 3, totems: 0, bullets: [],
+          shotCooldown: 0, invulnerable: 0, engineParticles: []
+        };
+      }
+
+      function readHighScore() {
+        try {
+          return Math.max(0, Number.parseInt(localStorage.getItem('centipede-arcade-high-score') || '0', 10) || 0);
+        } catch (_error) {
+          return 0;
+        }
+      }
+
+      function saveHighScore() {
+        if (player.score <= highScore) return;
+        highScore = player.score;
+        try { localStorage.setItem('centipede-arcade-high-score', String(highScore)); } catch (_error) { /* Storage can be disabled in private browsing. */ }
+      }
+
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function createSpore() {
+        return {
+          x: Math.random() * WIDTH,
+          y: HUD_HEIGHT + Math.random() * (HEIGHT - HUD_HEIGHT),
+          speed: 0.18 + Math.random() * 0.52,
+          radius: Math.random() < 0.78 ? 1 : 2,
+          alpha: 30 + Math.random() * 65
+        };
+      }
+
+      function updateSpores() {
+        for (let i = 0; i < spores.length; i += 1) {
+          const spore = spores[i];
+          spore.y -= spore.speed;
+          if (spore.y < HUD_HEIGHT) {
+            spores[i] = {
+              ...createSpore(),
+              x: Math.random() * WIDTH,
+              y: HEIGHT + Math.random() * 24
+            };
+          }
+        }
+      }
+
+      function generateMushrooms() {
+        const count = randomInt(30, 40);
+        const candidates = [];
+        for (let y = 3; y <= 19; y += 1) {
+          for (let x = 1; x < GRID_COLUMNS - 1; x += 1) candidates.push({ x, y });
+        }
+        const field = [];
+        for (let i = 0; i < count; i += 1) {
+          const index = randomInt(0, candidates.length - 1);
+          const cell = candidates.splice(index, 1)[0];
+          field.push({ x: cell.x, y: cell.y, health: 3 });
+        }
+        return field;
+      }
+
+      function findMushroom(x, y) {
+        return mushrooms.find((mushroom) => mushroom.x === x && mushroom.y === y) || null;
+      }
+
+      function addMushroom(x, y, health = 3) {
+        if (x < 0 || x >= GRID_COLUMNS || y < 0 || y >= GRID_ROWS) return null;
+        const existing = findMushroom(x, y);
+        if (existing) {
+          existing.health = Math.max(existing.health, Math.min(3, health));
+          return existing;
+        }
+        const mushroom = { x, y, health: Math.max(1, Math.min(3, health)) };
+        mushrooms.push(mushroom);
+        return mushroom;
+      }
+
+      function mushroomRect(mushroom) {
+        return { x: mushroom.x * CELL, y: mushroom.y * CELL, w: CELL, h: CELL };
+      }
+
+      function createCentipede(level) {
+        const roll = Math.random();
+        const kind = roll < 0.15 ? 'MUTANTE' : roll < 0.25 ? 'LEGENDARIO' : 'NORMAL';
+        const length = Math.min(10 + level - 1, 20);
+        const headX = length - 1;
+        const segments = [];
+        for (let i = 0; i < length; i += 1) {
+          segments.push({
+            x: headX - i, y: 0, dx: 1, dy: 1, isHead: i === 0, kind
+          });
+        }
+        return { segments, kind, credit: 0 };
+      }
+
+      function startWave(level, regenerateField) {
+        wave = level;
+        if (regenerateField) mushrooms = generateMushrooms();
+        centipedes = [createCentipede(wave)];
+        totems = [];
+        player.bullets.length = 0;
+      }
+
+      function startNewGame() {
+        player = createPlayer();
+        mushrooms = generateMushrooms();
+        wave = 1;
+        centipedes = [createCentipede(wave)];
+        totems = [];
+        selectedMenuOption = 0;
+        heldKeys.clear();
+        mouseDown = false;
+        accumulator = 0;
+        state = 'PLAYING';
+        syncControls();
+        canvas.focus({ preventScroll: true });
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.clearTimeout(toastTimeout);
+        toastTimeout = window.setTimeout(() => toast.classList.remove('visible'), 2600);
+      }
+
+      function toggleStyle() {
+        style = style === RETRO ? MODERN : RETRO;
+        syncControls();
+        draw(performance.now());
+      }
+
+      function togglePause() {
+        if (state === 'PLAYING') state = 'PAUSED';
+        else if (state === 'PAUSED') state = 'PLAYING';
+        heldKeys.clear();
+        mouseDown = false;
+        syncControls();
+      }
+
+      function syncControls() {
+        modeLabel.textContent = style === RETRO ? 'RETRO 80s' : 'MODERNO';
+        modeDot.style.background = style === RETRO ? '#00ff66' : '#00f2fe';
+        modeDot.style.color = style === RETRO ? '#00ff66' : '#00f2fe';
+        document.getElementById('pauseButton').innerHTML = state === 'PAUSED'
+          ? '<span class="button-icon">▶</span> Reanudar'
+          : '<span class="button-icon">Ⅱ</span> Pausar';
+      }
+
+      function playerRect(x = player.x, y = player.y) {
+        return { x: x - player.width / 2, y: y - player.height / 2, w: player.width, h: player.height };
+      }
+
+      function overlaps(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      function canPlayerOccupy(rect) {
+        if (rect.x < 0 || rect.x + rect.w > WIDTH || rect.y < PLAYER_ZONE_TOP || rect.y + rect.h > PLAYER_ZONE_BOTTOM) return false;
+        return !mushrooms.some((mushroom) => overlaps(rect, mushroomRect(mushroom)));
+      }
+
+      function movePlayer() {
+        const left = heldKeys.has('ArrowLeft') || heldKeys.has('KeyA');
+        const right = heldKeys.has('ArrowRight') || heldKeys.has('KeyD');
+        const up = heldKeys.has('ArrowUp') || heldKeys.has('KeyW');
+        const down = heldKeys.has('ArrowDown') || heldKeys.has('KeyS');
+        let dx = Number(right) - Number(left);
+        let dy = Number(down) - Number(up);
+        if (!dx && !dy) return;
+        const magnitude = Math.hypot(dx, dy);
+        dx = dx / magnitude * player.speed;
+        dy = dy / magnitude * player.speed;
+        const nextX = player.x + dx;
+        if (canPlayerOccupy(playerRect(nextX, player.y))) player.x = nextX;
+        const nextY = player.y + dy;
+        if (canPlayerOccupy(playerRect(player.x, nextY))) player.y = nextY;
+      }
+
+      function shoot() {
+        if (player.shotCooldown > 0 || player.bullets.length >= 3) return;
+        const rect = playerRect();
+        player.bullets.push({ x: player.x, y: rect.y - 12, w: 4, h: 12 });
+        player.shotCooldown = 8;
+      }
+
+      function segmentRect(segment) {
+        return {
+          x: segment.x * CELL,
+          y: (segment.y + WORLD_OFFSET) * CELL,
+          w: CELL,
+          h: CELL
+        };
+      }
+
+      function moveChain(chain) {
+        if (!chain.segments.length) return;
+        const old = chain.segments.map((segment) => ({ x: segment.x, y: segment.y, dx: segment.dx, dy: segment.dy }));
+        const head = chain.segments[0];
+        const nextX = head.x + head.dx;
+        const blockedByMushroom = mushrooms.some((mushroom) => mushroom.x === nextX && mushroom.y === head.y + WORLD_OFFSET);
+        const blocked = nextX < 0 || nextX >= GRID_COLUMNS || blockedByMushroom;
+        if (blocked) {
+          head.dx *= -1;
+          const nextY = head.y + head.dy;
+          if (nextY > WORLD_MAX_ROW) {
+            head.y = WORLD_MAX_ROW;
+            head.dy = -1;
+          } else if (head.y >= PLAYER_WORLD_FIRST_ROW && nextY <= PLAYER_WORLD_FIRST_ROW) {
+            head.y = PLAYER_WORLD_FIRST_ROW;
+            head.dy = 1;
+          } else if (nextY < 0) {
+            head.y = 0;
+            head.dy = 1;
+          } else {
+            head.y = nextY;
+            if (head.y === WORLD_MAX_ROW) head.dy = -1;
+            else if (head.y === PLAYER_WORLD_FIRST_ROW) head.dy = 1;
+          }
+        } else {
+          head.x = nextX;
+        }
+        for (let i = 1; i < chain.segments.length; i += 1) {
+          const segment = chain.segments[i];
+          segment.x = old[i - 1].x;
+          segment.y = old[i - 1].y;
+          segment.dx = old[i - 1].dx;
+          segment.dy = old[i - 1].dy;
+        }
+      }
+
+      function updateCentipedes() {
+        const interval = Math.max(3, 8 - (wave - 1) * 0.25);
+        for (const chain of [...centipedes]) {
+          chain.credit += chain.kind === 'MUTANTE' ? 1.5 : 1;
+          while (chain.credit >= interval) {
+            chain.credit -= interval;
+            moveChain(chain);
+          }
+        }
+        for (const item of totems) item.phase = (item.phase + 0.11) % (Math.PI * 2);
+      }
+
+      function findSegmentHit(rect) {
+        for (const chain of centipedes) {
+          for (let index = 0; index < chain.segments.length; index += 1) {
+            if (overlaps(rect, segmentRect(chain.segments[index]))) return { chain, index };
+          }
+        }
+        return null;
+      }
+
+      function setChainHead(segments) {
+        segments.forEach((segment, index) => { segment.isHead = index === 0; });
+      }
+
+      function hitSegment(chain, index) {
+        if (!centipedes.includes(chain) || index < 0 || index >= chain.segments.length) return;
+        const oldSegments = chain.segments;
+        const segment = oldSegments[index];
+        const wasHead = segment.isHead;
+        const front = oldSegments.slice(0, index);
+        const rear = oldSegments.slice(index + 1);
+        if (index > 0) addMushroom(segment.x, segment.y + WORLD_OFFSET, 3);
+        centipedes = centipedes.filter((candidate) => candidate !== chain);
+        chain.segments = [];
+        if (front.length) {
+          setChainHead(front);
+          centipedes.push({ segments: front, kind: chain.kind, credit: chain.credit });
+        }
+        if (rear.length) {
+          setChainHead(rear);
+          centipedes.push({ segments: rear, kind: chain.kind, credit: chain.credit });
+        }
+        if (segment.kind === 'LEGENDARIO' && Math.random() < 0.4) {
+          totems.push({ x: segment.x, y: GRID_ROWS - 1, phase: Math.random() * Math.PI * 2 });
+        }
+        player.score += (wasHead ? 100 : 10) + (segment.kind === 'LEGENDARIO' ? 50 : segment.kind === 'MUTANTE' ? 20 : 0);
+        saveHighScore();
+      }
+
+      function removeBullet(bullet) {
+        const index = player.bullets.indexOf(bullet);
+        if (index !== -1) player.bullets.splice(index, 1);
+      }
+
+      function resolveBulletCollisions() {
+        for (const bullet of [...player.bullets]) {
+          const rect = { x: bullet.x - bullet.w / 2, y: bullet.y, w: bullet.w, h: bullet.h };
+          const hit = findSegmentHit(rect);
+          if (hit) {
+            hitSegment(hit.chain, hit.index);
+            removeBullet(bullet);
+            continue;
+          }
+          const mushroom = mushrooms.find((candidate) => overlaps(rect, mushroomRect(candidate)));
+          if (mushroom) {
+            mushroom.health -= 1;
+            if (mushroom.health <= 0) mushrooms.splice(mushrooms.indexOf(mushroom), 1);
+            removeBullet(bullet);
+          }
+        }
+      }
+
+      function updateEngineParticles() {
+        if (Math.random() < 0.8) {
+          player.engineParticles.push({
+            x: player.x + (Math.random() - 0.5) * 6,
+            y: playerRect().y + player.height - 2,
+            vx: (Math.random() - 0.5) * 0.9,
+            vy: 1 + Math.random() * 1.3,
+            life: randomInt(5, 10),
+            radius: Math.random() < 0.65 ? 1 : 2
+          });
+        }
+        for (const particle of player.engineParticles) {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.life -= 1;
+        }
+        player.engineParticles = player.engineParticles.filter((particle) => particle.life > 0);
+      }
+
+      function resolveTotemPickups() {
+        const rect = playerRect();
+        totems = totems.filter((item) => {
+          const bob = Math.sin(item.phase) * 3.5;
+          const itemRect = { x: item.x * CELL, y: item.y * CELL + bob, w: CELL, h: CELL };
+          if (overlaps(rect, itemRect)) {
+            player.totems += 1;
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function resolvePlayerCollision() {
+        if (player.invulnerable > 0) return;
+        const rect = playerRect();
+        const collision = centipedes.some((chain) => chain.segments.some((segment) => overlaps(rect, segmentRect(segment))));
+        if (!collision) return;
+        if (player.totems > 0) {
+          player.totems -= 1;
+          player.invulnerable = 180;
+          return;
+        }
+        player.lives -= 1;
+        player.x = WIDTH / 2;
+        player.y = 540;
+        player.bullets.length = 0;
+        player.engineParticles.length = 0;
+        if (player.lives <= 0) {
+          state = 'GAMEOVER';
+          syncControls();
+          return;
+        }
+        startWave(wave, false);
+      }
+
+      function updateGame() {
+        updateSpores();
+        if (player.shotCooldown > 0) player.shotCooldown -= 1;
+        if (player.invulnerable > 0) player.invulnerable -= 1;
+        movePlayer();
+        updateEngineParticles();
+        if (heldKeys.has('Space') || mouseDown) shoot();
+        for (const bullet of player.bullets) bullet.y -= 14;
+        player.bullets = player.bullets.filter((bullet) => bullet.y >= HUD_HEIGHT);
+        updateCentipedes();
+        resolveBulletCollisions();
+        resolveTotemPickups();
+        resolvePlayerCollision();
+        if (state === 'PLAYING' && centipedes.length === 0) {
+          startWave(wave + 1, true);
+        }
+      }
+
+      function drawBackground() {
+        const palette = COLORS[style];
+        ctx.fillStyle = palette.background;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        if (style === MODERN) {
+          const gradient = ctx.createRadialGradient(WIDTH * 0.52, HEIGHT * 0.55, 12, WIDTH * 0.52, HEIGHT * 0.55, 390);
+          gradient.addColorStop(0, 'rgba(50, 27, 69, .22)');
+          gradient.addColorStop(0.65, 'rgba(20, 28, 42, .08)');
+          gradient.addColorStop(1, 'rgba(15, 16, 22, 0)');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, HUD_HEIGHT, WIDTH, HEIGHT - HUD_HEIGHT);
+          ctx.strokeStyle = 'rgba(119, 149, 190, .075)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let x = 0; x <= WIDTH; x += CELL) {
+            ctx.moveTo(x + 0.5, HUD_HEIGHT);
+            ctx.lineTo(x + 0.5, HEIGHT);
+          }
+          for (let y = HUD_HEIGHT; y <= HEIGHT; y += CELL) {
+            ctx.moveTo(0, y + 0.5);
+            ctx.lineTo(WIDTH, y + 0.5);
+          }
+          ctx.stroke();
+          for (const spore of spores) {
+            ctx.fillStyle = `rgba(80, 220, 255, ${spore.alpha / 255})`;
+            ctx.beginPath();
+            ctx.arc(spore.x, spore.y, spore.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawMushrooms() {
+        const palette = COLORS[style];
+        for (const mushroom of mushrooms) {
+          const x = mushroom.x * CELL;
+          const y = mushroom.y * CELL;
+          const color = mushroom.health >= 3 ? palette.mushroom3 : mushroom.health === 2 ? palette.mushroom2 : palette.mushroom1;
+          if (style === RETRO) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x + 4, y + 4, 12, 8);
+            ctx.fillRect(x + 7, y + 11, 6, 5);
+            ctx.fillStyle = palette.background;
+            ctx.fillRect(x + 6, y + 6, 2, 2);
+            ctx.fillRect(x + 12, y + 6, 2, 2);
+          } else {
+            const centerX = x + 10;
+            const centerY = y + 10;
+            const radius = 5 + mushroom.health;
+            ctx.save();
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 13;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            const highlight = mushroom.health === 3 ? '#fff0f8' : mushroom.health === 2 ? '#fff5be' : '#e1ffff';
+            ctx.fillStyle = highlight;
+            ctx.beginPath();
+            ctx.arc(centerX - 2, centerY - 2, mushroom.health, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#501930';
+            ctx.beginPath();
+            ctx.arc(centerX + 2, centerY + 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function segmentColor(segment, isHead) {
+        if (segment.kind === 'MUTANTE') return style === RETRO ? '#ff00c8' : '#ff41d2';
+        if (segment.kind === 'LEGENDARIO') return style === RETRO ? '#ffff00' : '#ffc437';
+        return isHead ? COLORS[style].head : COLORS[style].body;
+      }
+
+      function drawCentipedes() {
+        for (const chain of centipedes) {
+          for (const segment of chain.segments) {
+            const rect = segmentRect(segment);
+            const color = segmentColor(segment, segment.isHead);
+            if (style === RETRO) {
+              ctx.fillStyle = color;
+              const inset = segment.isHead ? 1 : 2;
+              ctx.fillRect(rect.x + inset, rect.y + inset, CELL - inset * 2, CELL - inset * 2);
+              ctx.fillStyle = '#000000';
+              if (segment.isHead) {
+                ctx.fillRect(rect.x + 5, rect.y + 6, 3, 3);
+                ctx.fillRect(rect.x + 12, rect.y + 6, 3, 3);
+              } else {
+                ctx.fillRect(rect.x + 8, rect.y + 8, 4, 4);
+              }
+            } else {
+              const centerX = rect.x + CELL / 2;
+              const centerY = rect.y + CELL / 2;
+              const radius = segment.isHead ? 9 : 8;
+              const glow = ctx.createRadialGradient(centerX - 3, centerY - 4, 1, centerX, centerY, radius + 6);
+              glow.addColorStop(0, '#ffffff');
+              glow.addColorStop(0.16, color);
+              glow.addColorStop(1, 'rgba(10, 18, 30, .05)');
+              ctx.fillStyle = glow;
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, radius + 5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = color;
+              ctx.strokeStyle = 'rgba(225, 250, 255, .9)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+              if (segment.isHead) {
+                ctx.fillStyle = '#08101a';
+                ctx.beginPath();
+                ctx.arc(centerX - 3, centerY - 2, 2, 0, Math.PI * 2);
+                ctx.arc(centerX + 3, centerY - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+        }
+      }
+
+      function drawTotems() {
+        const color = COLORS[style].totem;
+        for (const item of totems) {
+          const centerX = item.x * CELL + CELL / 2;
+          const centerY = item.y * CELL + CELL / 2 + Math.sin(item.phase) * 3.5;
+          if (style === RETRO) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 10);
+            ctx.lineTo(centerX + 9, centerY);
+            ctx.lineTo(centerX, centerY + 9);
+            ctx.lineTo(centerX - 9, centerY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(centerX - 2, centerY - 2, 4, 4);
+          } else {
+            ctx.save();
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 20;
+            const gradient = ctx.createRadialGradient(centerX - 3, centerY - 4, 1, centerX, centerY, 17);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.28, color);
+            gradient.addColorStop(1, 'rgba(186, 85, 211, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 10);
+            ctx.lineTo(centerX + 10, centerY);
+            ctx.lineTo(centerX, centerY + 10);
+            ctx.lineTo(centerX - 10, centerY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawPlayer() {
+        const palette = COLORS[style];
+        for (const bullet of player.bullets) {
+          const x = bullet.x - bullet.w / 2;
+          if (style === RETRO) {
+            ctx.fillStyle = palette.bullet;
+            ctx.fillRect(x, bullet.y, bullet.w, bullet.h);
+          } else {
+            ctx.save();
+            ctx.shadowColor = palette.bullet;
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = palette.bullet;
+            ctx.fillRect(x, bullet.y, bullet.w, bullet.h);
+            ctx.restore();
+          }
+        }
+        if (style === MODERN) {
+          for (const particle of player.engineParticles) {
+            ctx.fillStyle = `rgba(0, 180, 255, ${Math.min(0.72, particle.life / 13)})`;
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        if (player.invulnerable > 0 && Math.floor(player.invulnerable / 5) % 2 === 0) return;
+
+        const rect = playerRect();
+        const centerX = player.x;
+        const topY = rect.y;
+        if (style === RETRO) {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(centerX, topY);
+          ctx.lineTo(rect.x + 1, rect.y + rect.h - 1);
+          ctx.lineTo(rect.x + rect.w - 1, rect.y + rect.h - 1);
+          ctx.closePath();
+          ctx.fill();
+          return;
+        }
+
+        ctx.save();
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 22;
+        const hull = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
+        hull.addColorStop(0, '#f4fbff');
+        hull.addColorStop(0.38, '#a8acbe');
+        hull.addColorStop(1, '#3d566d');
+        ctx.fillStyle = hull;
+        ctx.strokeStyle = '#e6fbff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, topY);
+        ctx.lineTo(rect.x + 1, rect.y + rect.h - 1);
+        ctx.lineTo(centerX, rect.y + rect.h - 6);
+        ctx.lineTo(rect.x + rect.w - 1, rect.y + rect.h - 1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#00f2fe';
+        ctx.beginPath();
+        ctx.moveTo(centerX, topY + 5);
+        ctx.lineTo(centerX - 4, rect.y + rect.h - 9);
+        ctx.lineTo(centerX + 4, rect.y + rect.h - 9);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawHUD() {
+        const palette = COLORS[style];
+        ctx.fillStyle = palette.background;
+        ctx.fillRect(0, 0, WIDTH, HUD_HEIGHT);
+        if (style === RETRO) {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 14px monospace';
+          ctx.fillText(`1UP ${String(player.score).padStart(6, '0')}`, 8, 3);
+          ctx.fillStyle = '#b4b4b4';
+          ctx.font = '10px monospace';
+          ctx.fillText(`HIGH SCORE ${String(highScore).padStart(6, '0')}`, 8, 21);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 14px monospace';
+          ctx.fillText(`STAGE ${String(wave).padStart(2, '0')}`, 400, 20);
+        } else {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillStyle = '#6985a0';
+          ctx.font = 'bold 10px system-ui, sans-serif';
+          ctx.fillText('SCORE', 12, 2);
+          ctx.fillStyle = '#e1eeff';
+          ctx.font = 'bold 15px system-ui, sans-serif';
+          ctx.fillText(String(player.score).padStart(7, '0'), 12, 14);
+          ctx.fillStyle = '#6985a0';
+          ctx.font = '11px system-ui, sans-serif';
+          ctx.fillText(`BEST ${String(highScore).padStart(7, '0')}`, 135, 16);
+          ctx.textAlign = 'center';
+          ctx.fillStyle = palette.head;
+          ctx.font = 'bold 15px system-ui, sans-serif';
+          ctx.fillText(`WAVE  ${String(wave).padStart(2, '0')}`, 400, 11);
+          ctx.fillStyle = 'rgba(25, 37, 53, .95)';
+          ctx.fillRect(0, 37, WIDTH, 3);
+          ctx.fillStyle = palette.head;
+          ctx.fillRect(0, 37, 170, 3);
+          ctx.fillStyle = palette.totem;
+          ctx.fillRect(345, 37, 110, 3);
+        }
+
+        const livesX = 560;
+        ctx.fillStyle = palette.ship;
+        if (player.lives <= 0) {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.font = 'bold 14px monospace';
+          ctx.fillText('0', livesX, 20);
+        } else {
+          for (let i = 0; i < Math.min(player.lives, 5); i += 1) {
+            const x = livesX + i * 20;
+            ctx.beginPath();
+            ctx.moveTo(x + 6, 8);
+            ctx.lineTo(x, 25);
+            ctx.lineTo(x + 6, 21);
+            ctx.lineTo(x + 12, 25);
+            ctx.closePath();
+            ctx.fill();
+          }
+          if (player.lives > 5) {
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(`x${player.lives}`, livesX + 104, 20);
+          }
+        }
+
+        const saucerColor = player.totems > 0 ? palette.totem : (style === RETRO ? '#b4b4b4' : '#6985a0');
+        ctx.fillStyle = saucerColor;
+        ctx.beginPath();
+        ctx.ellipse(739, 18, 11, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(739, 17, 6, Math.PI, Math.PI * 2);
+        ctx.strokeStyle = saucerColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = style === RETRO ? '#ffffff' : '#e1eeff';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText(`x${player.totems}`, 756, 19);
+        ctx.beginPath();
+        ctx.moveTo(0, HUD_HEIGHT + 0.5);
+        ctx.lineTo(WIDTH, HUD_HEIGHT + 0.5);
+        ctx.strokeStyle = style === RETRO ? '#e6e6e6' : '#1fd5e8';
+        ctx.lineWidth = style === RETRO ? 1 : 2;
+        ctx.stroke();
+      }
+
+      function drawCenteredText(text, y, color, font, shadowColor = null) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = font;
+        if (shadowColor) {
+          ctx.shadowColor = shadowColor;
+          ctx.shadowBlur = 18;
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(text, WIDTH / 2, y);
+        ctx.restore();
+      }
+
+      function drawMenu(now) {
+        const palette = COLORS[style];
+        const pulse = 0.78 + Math.sin(now / 360) * 0.22;
+        if (style === MODERN) {
+          drawCenteredText('CENTIPEDE', 170, `rgba(0,242,254,${pulse})`, '800 56px system-ui, sans-serif', '#b732ff');
+        } else {
+          drawCenteredText('CENTIPEDE', 170, palette.head, 'bold 54px monospace');
+        }
+        drawCenteredText('ARCADE REMIX  ·  1981 / 2081', 220, '#91a4b9', 'bold 15px monospace');
+        drawCenteredText('FLECHAS / WASD PARA MOVER  ·  T PARA CAMBIAR ESTILO', 278, '#b1bed2', '14px monospace');
+
+        const options = ['1. START GAME', '2. EXIT'];
+        for (let i = 0; i < options.length; i += 1) {
+          const x = 270;
+          const y = 328 + i * 64;
+          const selected = i === selectedMenuOption;
+          const color = selected ? palette.head : '#667387';
+          ctx.save();
+          if (style === MODERN && selected) {
+            ctx.fillStyle = 'rgba(0, 229, 255, .08)';
+            ctx.fillRect(x, y, 260, 48);
+          }
+          ctx.strokeStyle = color;
+          ctx.lineWidth = selected ? 2 : 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, 259, 47);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = selected ? '#ffffff' : '#919baa';
+          ctx.font = `${selected ? 'bold ' : ''}20px ${style === RETRO ? 'monospace' : 'system-ui, sans-serif'}`;
+          ctx.fillText(options[i], WIDTH / 2, y + 24);
+          ctx.restore();
+        }
+        drawCenteredText('ENTER / 1 PARA COMENZAR     2 PARA SALIR', 492, '#8794a8', '13px monospace');
+        drawCenteredText(`ESTILO: ${style}  [T]`, 554, palette.totem, 'bold 13px monospace');
+      }
+
+      function drawOverlay(title, message, accent, scoreText = '') {
+        ctx.fillStyle = state === 'GAMEOVER' ? 'rgba(0, 0, 0, .82)' : 'rgba(0, 0, 0, .68)';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        drawCenteredText(title, state === 'GAMEOVER' ? 220 : 250, accent, 'bold 46px monospace', style === MODERN ? accent : null);
+        if (scoreText) drawCenteredText(scoreText, 290, '#f5f5ff', 'bold 21px monospace');
+        drawCenteredText(message, state === 'GAMEOVER' ? 360 : 310, '#edf2fa', '18px system-ui, sans-serif');
+        if (state === 'PAUSED') drawCenteredText('PULSA P / SHIFT PARA REANUDAR', 354, '#91a2b7', '12px monospace');
+      }
+
+      function draw(now) {
+        ctx.imageSmoothingEnabled = style !== RETRO;
+        drawBackground();
+        if (state === 'MENU') {
+          drawMenu(now);
+          return;
+        }
+        drawMushrooms();
+        drawCentipedes();
+        drawTotems();
+        drawPlayer();
+        drawHUD();
+        if (state === 'PAUSED') drawOverlay('PAUSA', 'JUEGO EN PAUSA', COLORS[style].head);
+        else if (state === 'GAMEOVER') drawOverlay('GAME OVER', 'ENTER PARA VOLVER A JUGAR', COLORS[style].mushroom3, `PUNTUACION FINAL  ${player.score}`);
+      }
+
+      function canvasPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (event.clientX - rect.left) * WIDTH / rect.width,
+          y: (event.clientY - rect.top) * HEIGHT / rect.height
+        };
+      }
+
+      function handleCanvasPointer(event) {
+        canvas.focus({ preventScroll: true });
+        const point = canvasPoint(event);
+        if (state === 'MENU') {
+          const option = point.y >= 328 && point.y < 376 ? 0 : point.y >= 392 && point.y < 440 ? 1 : -1;
+          if (option !== -1 && point.x >= 270 && point.x <= 530) {
+            selectedMenuOption = option;
+            if (option === 0) startNewGame();
+            else showToast('Para salir del juego, cierra esta pestaña del navegador.');
+          }
+          return;
+        }
+        if (state === 'GAMEOVER') {
+          startNewGame();
+          return;
+        }
+        if (state === 'PAUSED') {
+          togglePause();
+          return;
+        }
+        mouseDown = true;
+        shoot();
+      }
+
+      function handleKeyDown(event) {
+        const code = event.code;
+        const gameKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'];
+        if (gameKeys.includes(code)) event.preventDefault();
+        heldKeys.add(code);
+        if (event.repeat) return;
+
+        if (code === 'KeyT') {
+          toggleStyle();
+          return;
+        }
+        if (state === 'MENU') {
+          if (code === 'ArrowUp' || code === 'KeyW') selectedMenuOption = (selectedMenuOption + 1) % 2;
+          else if (code === 'ArrowDown' || code === 'KeyS') selectedMenuOption = (selectedMenuOption + 1) % 2;
+          else if (code === 'Digit1' || code === 'Numpad1' || code === 'Enter' || code === 'Space') startNewGame();
+          else if (code === 'Digit2' || code === 'Numpad2') showToast('Para salir del juego, cierra esta pestaña del navegador.');
+          return;
+        }
+        if (state === 'GAMEOVER') {
+          if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') startNewGame();
+          return;
+        }
+        if (code === 'KeyP' || code === 'ShiftLeft' || code === 'ShiftRight' || code === 'Escape') {
+          togglePause();
+          return;
+        }
+        if (state === 'PLAYING' && code === 'Space') shoot();
+      }
+
+      function handleKeyUp(event) { heldKeys.delete(event.code); }
+
+      function loop(time) {
+        if (!previousTime) previousTime = time;
+        const delta = Math.min(100, Math.max(0, time - previousTime));
+        previousTime = time;
+        if (state === 'PLAYING') {
+          accumulator += delta;
+          while (accumulator >= FPS_STEP) {
+            updateGame();
+            accumulator -= FPS_STEP;
+          }
+        } else {
+          accumulator = 0;
+          if (state === 'MENU') updateSpores();
+        }
+        draw(time);
+        requestAnimationFrame(loop);
+      }
+
+      document.getElementById('startButton').addEventListener('click', startNewGame);
+      document.getElementById('pauseButton').addEventListener('click', () => {
+        if (state === 'PLAYING' || state === 'PAUSED') togglePause();
+        else if (state === 'MENU') showToast('Pulsa Jugar o Enter para comenzar.');
+      });
+      document.getElementById('styleButton').addEventListener('click', toggleStyle);
+      canvas.addEventListener('pointerdown', handleCanvasPointer);
+      canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+      window.addEventListener('pointerup', () => { mouseDown = false; });
+      window.addEventListener('keydown', handleKeyDown, { passive: false });
+      window.addEventListener('keyup', handleKeyUp);
+      window.addEventListener('blur', () => { heldKeys.clear(); mouseDown = false; });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && state === 'PLAYING') {
+          state = 'PAUSED';
+          heldKeys.clear();
+          mouseDown = false;
+          syncControls();
+        }
+      });
+
+      document.querySelectorAll('.touch-key').forEach((button) => {
+        const code = button.dataset.code;
+        const press = (event) => {
+          event.preventDefault();
+          heldKeys.add(code);
+          button.classList.add('is-held');
+          if (code === 'Space' && state === 'PLAYING') shoot();
+          try { button.setPointerCapture(event.pointerId); } catch (_error) { /* Pointer capture is optional. */ }
+        };
+        const release = (event) => {
+          if (event) event.preventDefault();
+          heldKeys.delete(code);
+          button.classList.remove('is-held');
+        };
+        button.addEventListener('pointerdown', press);
+        button.addEventListener('pointerup', release);
+        button.addEventListener('pointercancel', release);
+        button.addEventListener('lostpointercapture', release);
+        button.addEventListener('contextmenu', (event) => event.preventDefault());
+      });
+
+      syncControls();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
